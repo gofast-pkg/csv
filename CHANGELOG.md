@@ -1,9 +1,5 @@
 # CHANGELOG
 
-## v0.0.1
+## v0.0.2
 
-- refact project
-- add go example
-- update documentation
-- improve unit tests
-- implement codesystem
+- community standard addons
