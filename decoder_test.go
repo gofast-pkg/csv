@@ -4,70 +4,84 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	defaultContextKey   = "key"
+	defaultContextValue = "value"
 )
 
 func TestNewDecoder(t *testing.T) {
-	cfg := ConfigDecoder{
-		NewInstanceFunc:  func() any { return nil },
-		SaveInstanceFunc: func(any, Decoder) error { return nil },
-	}
-
-	t.Run("should return a new decoder", func(t *testing.T) {
-		d, err := NewDecoder(cfg)
-		if assert.NoError(t, err) {
-			assert.NotNil(t, d)
-		}
+	t.Run("should return an error because newInstanceFunc is nil", func(t *testing.T) {
+		decoder, err := NewDecoder(ConfigDecoder{
+			SaveInstanceFunc:    func(_ Decoder, _ any) error { return nil },
+			WarningInstanceFunc: func(_ Decoder, _ Warning) error { return nil },
+		})
+		require.ErrorIs(t, err, ErrInvalidConfigDecoder)
+		assert.Nil(t, decoder)
 	})
-	t.Run("should return an error because the reader is nil", func(t *testing.T) {
-		d, err := NewDecoder(ConfigDecoder{})
-		if assert.Error(t, err) {
-			assert.Nil(t, d)
-			assert.EqualError(t, err, ErrConfDecoder.Error())
-		}
+	t.Run("should return an error because saveInstanceFunc is nil", func(t *testing.T) {
+		decoder, err := NewDecoder(ConfigDecoder{
+			NewInstanceFunc:     func(_ Decoder) (any, error) { return &struct{}{}, nil },
+			WarningInstanceFunc: func(_ Decoder, _ Warning) error { return nil },
+		})
+		require.ErrorIs(t, err, ErrInvalidConfigDecoder)
+		assert.Nil(t, decoder)
+	})
+	t.Run("should return an error because warningInstanceFunc is nil", func(t *testing.T) {
+		decoder, err := NewDecoder(ConfigDecoder{
+			NewInstanceFunc:  func(_ Decoder) (any, error) { return &struct{}{}, nil },
+			SaveInstanceFunc: func(_ Decoder, _ any) error { return nil },
+		})
+		require.ErrorIs(t, err, ErrInvalidConfigDecoder)
+		assert.Nil(t, decoder)
+	})
+	t.Run("should return a Decoder", func(t *testing.T) {
+		decoder, err := NewDecoder(ConfigDecoder{
+			NewInstanceFunc:     func(_ Decoder) (any, error) { return &struct{}{}, nil },
+			SaveInstanceFunc:    func(_ Decoder, _ any) error { return nil },
+			WarningInstanceFunc: func(_ Decoder, _ Warning) error { return nil },
+		})
+		require.NoError(t, err)
+		assert.NotNil(t, decoder)
 	})
 }
 
 func TestDecoder_ContextSet(t *testing.T) {
 	t.Run("should set the context", func(t *testing.T) {
-		key := "key"
-		value := "value"
-		d := &decoder{context: make(map[string]string)}
+		d := &decoder{context: make(map[string]any)}
 
-		d.ContextSet(key, value)
-		assert.Equal(t, d.context[key], value)
+		d.ContextSet(defaultContextKey, defaultContextValue)
+		assert.Equal(t, defaultContextValue, d.context[defaultContextKey])
 	})
 	t.Run("should override the context", func(t *testing.T) {
-		key := "key"
-		value := "value"
-		d := &decoder{context: make(map[string]string)}
+		d := &decoder{context: make(map[string]any)}
 
-		d.ContextSet(key, value)
-		assert.Equal(t, d.context[key], value)
+		d.ContextSet(defaultContextKey, defaultContextValue)
+		assert.Equal(t, defaultContextValue, d.context[defaultContextKey])
 
-		value = "value2"
-		d.ContextSet(key, value)
-		assert.Equal(t, d.context[key], value)
+		value2 := "value2"
+		d.ContextSet(defaultContextKey, value2)
+		assert.Equal(t, value2, d.context[defaultContextKey])
 	})
 }
 
 func TestDecoder_ContextGet(t *testing.T) {
-	t.Run("should not find the value associated to key", func(t *testing.T) {
-		d := &decoder{context: make(map[string]string)}
+	t.Run("when trying to get an unexistant value", func(t *testing.T) {
+		d := &decoder{context: make(map[string]any)}
 
-		v, ok := d.ContextGet("key")
-		if assert.False(t, ok) {
-			assert.Equal(t, v, "")
-		}
+		v, ok := d.ContextGet(defaultContextKey)
+		assert.False(t, ok)
+		assert.Nil(t, v)
 	})
-	t.Run("should find the value associated to key", func(t *testing.T) {
-		key := "key"
-		value := "value"
-		d := &decoder{context: make(map[string]string)}
+	t.Run("when get an existent value", func(t *testing.T) {
+		d := &decoder{context: make(map[string]any)}
 
-		d.ContextSet(key, value)
-		v, ok := d.ContextGet(key)
-		if assert.True(t, ok) {
-			assert.Equal(t, v, value)
-		}
+		d.ContextSet(defaultContextKey, defaultContextValue)
+		v, ok := d.ContextGet(defaultContextKey)
+
+		assert.True(t, ok)
+		assert.Equal(t, defaultContextValue, v)
 	})
 }

@@ -6,7 +6,6 @@
 [![codecov](https://codecov.io/gh/gofast-pkg/csv/branch/main/graph/badge.svg?token=7TCE3QB21E)](https://codecov.io/gh/gofast-pkg/csv)
 [![Release](https://img.shields.io/github/release/gofast-pkg/csv?style=flat-square)](https://github.com/gofast-pkg/csv/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gofast-pkg/csv)](https://goreportcard.com/report/github.com/gofast-pkg/csv)
-[![codebeat badge](https://codebeat.co/badges/1771f3ed-bead-4953-bd72-da2c8819962c)](https://codebeat.co/projects/github-com-gofast-pkg-csv-main)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fgofast-pkg%2Fcsv.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fgofast-pkg%2Fcsv?ref=badge_shield)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/gofast-pkg/csv/blob/main/LICENSE)
 
@@ -26,23 +25,6 @@ $> go get github.com/gofast-pkg/csv@latest
 ```
 
 ## Usage
-
-``` Golang
-import github.com/gofast-pkg/csv
-
-func main() {
-  reader, err := os.Open(filePath)
-  if err != nil {
-    panic(err)
-  }
-  defer reader.Close()
-
-  csvReader, err := csv.New(reader, ';')
-  if err != nil {
-    panic(err)
-  }
-}
-```
 
 Examples are provided on the [go doc reference](https://pkg.go.dev/github.com/gofast-pkg/csv)
 
