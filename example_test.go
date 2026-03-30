@@ -5,22 +5,10 @@ import (
 	"os"
 
 	"github.com/gofast-pkg/csv"
+	"github.com/stretchr/testify/assert"
 )
 
-const testFilePath = "testdata/testfile.csv"
-
-func ExampleNewWarning() {
-	w := csv.NewWarning()
-	w["key"] = []string{"value1", "value2"}
-	for key, values := range w {
-		for _, value := range values {
-			fmt.Println(key, value)
-		}
-	}
-	// Output:
-	// key value1
-	// key value2
-}
+const withValidCSVFile = "testdata/valid.csv"
 
 func ExampleNew() {
 	type Model struct {
@@ -30,25 +18,49 @@ func ExampleNew() {
 		Size      string `csv:"size"`
 	}
 
-	reader, err := os.Open(testFilePath)
+	reader, err := os.Open(withValidCSVFile)
 	if err != nil {
 		panic(err)
 	}
-	defer reader.Close()
+	defer func() {
+		if err = reader.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	csvReader, err := csv.New(reader, ';')
 	if err != nil {
 		panic(err)
 	}
 
+	exampleContextKey := "example-key"
+
 	list := []Model{}
 	cfg := csv.ConfigDecoder{
-		NewInstanceFunc: func() any { return &Model{} },
-		SaveInstanceFunc: func(obj any, d csv.Decoder) error {
-			if v, ok := d.ContextGet("type"); ok {
-				obj.(*Model).Type = v
+		NewInstanceFunc: func(_ csv.Decoder) (any, error) { return &Model{}, nil },
+		SaveInstanceFunc: func(dec csv.Decoder, obj any) error {
+			// manipulate data in the decoder context
+			v, ok := dec.ContextGet(exampleContextKey)
+			if !ok {
+				return assert.AnError
 			}
-			list = append(list, *(obj.(*Model)))
+			if count, ok := v.(*int); ok {
+				(*count)++
+				dec.ContextSet(exampleContextKey, count)
+			}
+
+			if v, ok := obj.(*Model); ok {
+				list = append(list, *v)
+
+				return nil
+			}
+
+			return assert.AnError
+		},
+		WarningInstanceFunc: func(_ csv.Decoder, warn csv.Warning) error {
+			for k, v := range warn {
+				fmt.Printf("warning with key %s value %s\n", k, v)
+			}
 
 			return nil
 		},
@@ -58,16 +70,23 @@ func ExampleNew() {
 		panic(err)
 	}
 
-	warn, err := csvReader.DecodeWithDecoder(decoder)
+	// records some datas in the decoder context
+	count := int(0)
+	decoder.ContextSet(exampleContextKey, &count)
+
+	err = csvReader.DecodeWithDecoder(decoder)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(len(warn))
+
 	for _, v := range list {
 		fmt.Println(v)
 	}
+
+	fmt.Println(count)
+
 	// Output:
-	// 0
 	// {Root Dog black big}
 	// {Toto Human blue small}
+	// 2
 }
